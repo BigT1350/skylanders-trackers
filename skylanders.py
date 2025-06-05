@@ -99,7 +99,8 @@ class SkylandersTracker:
             cursor = self.db.execute(
                 "SELECT status FROM listings WHERE id = ?", 
                 (item["itemId"],)
-            if cursor.fetchone()[0] == "new":
+            result = cursor.fetchone()
+            if result and result[0] == "new":
                 self.send_alert(item, skylander["name"])
 
     def send_alert(self, item, skylander_name):
