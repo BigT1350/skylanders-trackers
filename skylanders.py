@@ -1,0 +1,137 @@
+import requests
+import sqlite3
+import smtplib
+from datetime import datetime
+
+# CONFIGURATION (Edit these!)
+CONFIG = {
+    "EBAY_API_KEY": "TristenJ-skylande-PRD-d377d0d67-a193bdd0",          # From developer.ebay.com
+    "SKYLANDERS": [
+       {"name": "chrome spyro", "max_price": 250, "keywords": ["chrome", "spyro", "skylander"]},
+    {"name": "crystal clear cynder", "max_price": 250, "keywords": ["crystal", "clear", "cynder", "skylander"]},
+    {"name": "crystal clear stealth elf", "max_price": 250, "keywords": ["crystal", "clear", "elf", "skylander"]},
+    {"name": "crystal clear wham-shell", "max_price": 250, "keywords": ["crystal", "clear", "wham", "skylander"]},
+    {"name": "crystal clear whirlwind", "max_price": 250, "keywords": ["crystal", "clear", "whirlwind", "skylander"]},
+    {"name": "flocked stump smash", "max_price": 100, "keywords": ["flocked", "stump", "skylander"]},
+    {"name": "glow in the dark warnado", "max_price": 250, "keywords": ["glow", "dark", "warnado", "skylander"]},
+    {"name": "glow in the dark wrecking ball", "max_price": 250, "keywords": ["glow", "dark", "wrecking", "skylander"]},
+    {"name": "glow in the dark zap", "max_price": 250, "keywords": ["glow", "dark", "zap", "skylander"]},
+    {"name": "gold chop chop", "max_price": 250, "keywords": ["gold", "chop", "skylander", "spyro"]},
+    {"name": "gold drill sergeant", "max_price": 250, "keywords": ["gold", "drill", "skylander", "spyro"]},
+    {"name": "gold flameslinger", "max_price": 250, "keywords": ["gold", "flame", "skylander", "spyro"]},
+    {"name": "metallic purple cynder", "max_price": 250, "keywords": ["purple", "cynder", "metallic", "skylander", "spyro"]},
+    {"name": "pearl hex", "max_price": 250, "keywords": ["pearl", "hex", "skylander", "spyro"]},
+    {"name": "red camo", "max_price": 250, "keywords": ["red", "camo", "skylander", "spyro"]},
+    {"name": "silver boomer", "max_price": 250, "keywords": ["silver", "boomer", "skylander"]},
+    {"name": "silver dino-rang", "max_price": 250, "keywords": ["silver", "dino", "skylander"]},
+    {"name": "silver eruptor", "max_price": 250, "keywords": ["silver", "eruptor", "skylander"]},
+ # All must be in title
+        }
+        # Add more Skylanders here...
+    ],
+    "BLACKLIST": ["poster", "handmade", "digital", "card"],  # Auto-reject these
+    "EMAIL": {
+        "enabled": True,
+        "sender": "gertbimbanos1350@gmail.com",
+        "password": "ptovezdiebowsond",     # 2FA required
+        "recipient": "gertbimbanos1350@gmail.com"
+    },
+    "CHECK_INTERVAL": 3600  # Seconds (1 hour)
+}
+
+# Core Tracker Class
+class SkylandersTracker:
+    def __init__(self):
+        self.db = sqlite3.connect("skylanders.db")
+        self._init_db()
+        
+    def _init_db(self):
+        self.db.execute("""
+        CREATE TABLE IF NOT EXISTS listings (
+            id TEXT PRIMARY KEY,
+            skylander TEXT,
+            price REAL,
+            title TEXT,
+            url TEXT,
+            status TEXT DEFAULT 'new',
+            last_checked TIMESTAMP
+        )
+        """)
+        self.db.commit()
+
+    def fetch_ebay_listings(self):
+        for skylander in CONFIG["SKYLANDERS"]:
+            params = {
+                "q": skylander["keywords"],
+                "filter": f"price:[0..{skylander['max_price']}]",
+                "sort": "newlyListed",
+                "limit": 5
+            }
+            headers = {"Authorization": f"Bearer {CONFIG['EBAY_API_KEY']}"}
+            
+            try:
+                res = requests.get(
+                    "https://api.ebay.com/buy/browse/v1/item_summary/search",
+                    headers=headers,
+                    params=params
+                )
+                if res.status_code == 200:
+                    self.process_listings(res.json(), skylander)
+            except Exception as e:
+                print(f"Error fetching {skylander['name']}: {str(e)}")
+
+    def process_listings(self, data, skylander):
+        for item in data.get("itemSummaries", []):
+            # Check blacklist
+            if any(bad in item["title"].lower() for bad in CONFIG["BLACKLIST"]):
+                continue
+                
+            # Check required keywords
+            if not all(kw in item["title"] for kw in skylander["must_include"]):
+                continue
+                
+            # Save or update listing
+            self.db.execute("""
+            INSERT OR IGNORE INTO listings (id, skylander, price, title, url)
+            VALUES (?, ?, ?, ?, ?)
+            """, (
+                item["itemId"],
+                skylander["name"],
+                float(item["price"]["value"]),
+                item["title"],
+                item["itemWebUrl"]
+            ))
+            self.db.commit()
+            
+            # Send alert if new
+            cursor = self.db.execute(
+                "SELECT status FROM listings WHERE id = ?", 
+                (item["itemId"],)
+            if cursor.fetchone()[0] == "new":
+                self.send_alert(item, skylander["name"])
+
+    def send_alert(self, item, skylander_name):
+        message = f"""New {skylander_name} found!
+Price: ${item['price']['value']}
+Title: {item['title']}
+Link: {item['itemWebUrl']}
+"""
+        if CONFIG["EMAIL"]["enabled"]:
+            try:
+                with smtplib.SMTP("smtp.gmail.com", 587) as server:
+                    server.starttls()
+                    server.login(
+                        CONFIG["EMAIL"]["sender"],
+                        CONFIG["EMAIL"]["password"]
+                    )
+                    server.sendmail(
+                        CONFIG["EMAIL"]["sender"],
+                        CONFIG["EMAIL"]["recipient"],
+                        f"Subject: 🚨 Skylander Alert!\n\n{message}"
+                    )
+            except Exception as e:
+                print(f"Email failed: {str(e)}")
+
+if __name__ == "__main__":
+    tracker = SkylandersTracker()
+    tracker.fetch_ebay_listings()
