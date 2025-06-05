@@ -3,9 +3,9 @@ import sqlite3
 import smtplib
 from datetime import datetime
 
-# CONFIGURATION (Edit these!)
+# CONFIGURATION
 CONFIG = {
-    "EBAY_API_KEY": "TristenJ-skylande-PRD-d377d0d67-a193bdd0",  # From developer.ebay.com
+    "EBAY_API_KEY": "TristenJ-skylande-PRD-d377d0d67-a193bdd0",
     "SKYLANDERS": [
         {"name": "chrome spyro", "max_price": 250, "keywords": "chrome spyro skylander", "must_include": ["chrome", "spyro"]},
         {"name": "crystal clear cynder", "max_price": 250, "keywords": "crystal clear cynder skylander", "must_include": ["crystal", "cynder"]},
@@ -26,14 +26,14 @@ CONFIG = {
         {"name": "silver dino-rang", "max_price": 250, "keywords": "silver dino-rang skylander", "must_include": ["silver", "dino"]},
         {"name": "silver eruptor", "max_price": 250, "keywords": "silver eruptor skylander", "must_include": ["silver", "eruptor"]}
     ],
-    "BLACKLIST": ["poster", "handmade", "digital", "card"],  # Auto-reject these
+    "BLACKLIST": ["poster", "handmade", "digital", "card"],
     "EMAIL": {
         "enabled": True,
         "sender": "gertbimbanos1350@gmail.com",
-        "password": "ptovezdiebowsond",  # 2FA required
+        "password": "ptovezdiebowsond",
         "recipient": "gertbimbanos1350@gmail.com"
     },
-    "CHECK_INTERVAL": 3600  # Seconds (1 hour)
+    "CHECK_INTERVAL": 3600
 }
 
 class SkylandersTracker:
@@ -96,6 +96,7 @@ class SkylandersTracker:
             ))
             self.db.commit()
             
+            # Fixed the cursor execution with proper parenthesis
             cursor = self.db.execute(
                 "SELECT status FROM listings WHERE id = ?", 
                 (item["itemId"],)
