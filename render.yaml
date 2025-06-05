@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: skylanders-tracker
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python skylanders.py
+    envVars:
+      - key: EBAY_API_KEY
+        value: YOUR_EBAY_API_KEY
+      - key: GMAIL_PASSWORD
+        value: YOUR_GMAIL_APP_PASSWORD
