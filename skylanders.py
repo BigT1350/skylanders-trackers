@@ -5,41 +5,37 @@ from datetime import datetime
 
 # CONFIGURATION (Edit these!)
 CONFIG = {
-    "EBAY_API_KEY": "TristenJ-skylande-PRD-d377d0d67-a193bdd0",          # From developer.ebay.com
+    "EBAY_API_KEY": "TristenJ-skylande-PRD-d377d0d67-a193bdd0",  # From developer.ebay.com
     "SKYLANDERS": [
-       {"name": "chrome spyro", "max_price": 250, "keywords": ["chrome", "spyro", "skylander"]},
-    {"name": "crystal clear cynder", "max_price": 250, "keywords": ["crystal", "clear", "cynder", "skylander"]},
-    {"name": "crystal clear stealth elf", "max_price": 250, "keywords": ["crystal", "clear", "elf", "skylander"]},
-    {"name": "crystal clear wham-shell", "max_price": 250, "keywords": ["crystal", "clear", "wham", "skylander"]},
-    {"name": "crystal clear whirlwind", "max_price": 250, "keywords": ["crystal", "clear", "whirlwind", "skylander"]},
-    {"name": "flocked stump smash", "max_price": 100, "keywords": ["flocked", "stump", "skylander"]},
-    {"name": "glow in the dark warnado", "max_price": 250, "keywords": ["glow", "dark", "warnado", "skylander"]},
-    {"name": "glow in the dark wrecking ball", "max_price": 250, "keywords": ["glow", "dark", "wrecking", "skylander"]},
-    {"name": "glow in the dark zap", "max_price": 250, "keywords": ["glow", "dark", "zap", "skylander"]},
-    {"name": "gold chop chop", "max_price": 250, "keywords": ["gold", "chop", "skylander", "spyro"]},
-    {"name": "gold drill sergeant", "max_price": 250, "keywords": ["gold", "drill", "skylander", "spyro"]},
-    {"name": "gold flameslinger", "max_price": 250, "keywords": ["gold", "flame", "skylander", "spyro"]},
-    {"name": "metallic purple cynder", "max_price": 250, "keywords": ["purple", "cynder", "metallic", "skylander", "spyro"]},
-    {"name": "pearl hex", "max_price": 250, "keywords": ["pearl", "hex", "skylander", "spyro"]},
-    {"name": "red camo", "max_price": 250, "keywords": ["red", "camo", "skylander", "spyro"]},
-    {"name": "silver boomer", "max_price": 250, "keywords": ["silver", "boomer", "skylander"]},
-    {"name": "silver dino-rang", "max_price": 250, "keywords": ["silver", "dino", "skylander"]},
-    {"name": "silver eruptor", "max_price": 250, "keywords": ["silver", "eruptor", "skylander"]},
- # All must be in title
-        }
-        # Add more Skylanders here...
+        {"name": "chrome spyro", "max_price": 250, "keywords": "chrome spyro skylander", "must_include": ["chrome", "spyro"]},
+        {"name": "crystal clear cynder", "max_price": 250, "keywords": "crystal clear cynder skylander", "must_include": ["crystal", "cynder"]},
+        {"name": "crystal clear stealth elf", "max_price": 250, "keywords": "crystal clear stealth elf skylander", "must_include": ["crystal", "elf"]},
+        {"name": "crystal clear wham-shell", "max_price": 250, "keywords": "crystal clear wham-shell skylander", "must_include": ["crystal", "wham"]},
+        {"name": "crystal clear whirlwind", "max_price": 250, "keywords": "crystal clear whirlwind skylander", "must_include": ["crystal", "whirlwind"]},
+        {"name": "flocked stump smash", "max_price": 100, "keywords": "flocked stump smash skylander", "must_include": ["flocked", "stump"]},
+        {"name": "glow in the dark warnado", "max_price": 250, "keywords": "glow in the dark warnado skylander", "must_include": ["glow", "warnado"]},
+        {"name": "glow in the dark wrecking ball", "max_price": 250, "keywords": "glow in the dark wrecking ball skylander", "must_include": ["glow", "wrecking"]},
+        {"name": "glow in the dark zap", "max_price": 250, "keywords": "glow in the dark zap skylander", "must_include": ["glow", "zap"]},
+        {"name": "gold chop chop", "max_price": 250, "keywords": "gold chop chop skylander", "must_include": ["gold", "chop"]},
+        {"name": "gold drill sergeant", "max_price": 250, "keywords": "gold drill sergeant skylander", "must_include": ["gold", "drill"]},
+        {"name": "gold flameslinger", "max_price": 250, "keywords": "gold flameslinger skylander", "must_include": ["gold", "flame"]},
+        {"name": "metallic purple cynder", "max_price": 250, "keywords": "metallic purple cynder skylander", "must_include": ["purple", "cynder"]},
+        {"name": "pearl hex", "max_price": 250, "keywords": "pearl hex skylander", "must_include": ["pearl", "hex"]},
+        {"name": "red camo", "max_price": 250, "keywords": "red camo skylander", "must_include": ["red", "camo"]},
+        {"name": "silver boomer", "max_price": 250, "keywords": "silver boomer skylander", "must_include": ["silver", "boomer"]},
+        {"name": "silver dino-rang", "max_price": 250, "keywords": "silver dino-rang skylander", "must_include": ["silver", "dino"]},
+        {"name": "silver eruptor", "max_price": 250, "keywords": "silver eruptor skylander", "must_include": ["silver", "eruptor"]}
     ],
     "BLACKLIST": ["poster", "handmade", "digital", "card"],  # Auto-reject these
     "EMAIL": {
         "enabled": True,
         "sender": "gertbimbanos1350@gmail.com",
-        "password": "ptovezdiebowsond",     # 2FA required
+        "password": "ptovezdiebowsond",  # 2FA required
         "recipient": "gertbimbanos1350@gmail.com"
     },
     "CHECK_INTERVAL": 3600  # Seconds (1 hour)
 }
 
-# Core Tracker Class
 class SkylandersTracker:
     def __init__(self):
         self.db = sqlite3.connect("skylanders.db")
@@ -82,15 +78,12 @@ class SkylandersTracker:
 
     def process_listings(self, data, skylander):
         for item in data.get("itemSummaries", []):
-            # Check blacklist
             if any(bad in item["title"].lower() for bad in CONFIG["BLACKLIST"]):
                 continue
                 
-            # Check required keywords
-            if not all(kw in item["title"] for kw in skylander["must_include"]):
+            if not all(kw.lower() in item["title"].lower() for kw in skylander["must_include"]):
                 continue
                 
-            # Save or update listing
             self.db.execute("""
             INSERT OR IGNORE INTO listings (id, skylander, price, title, url)
             VALUES (?, ?, ?, ?, ?)
@@ -103,7 +96,6 @@ class SkylandersTracker:
             ))
             self.db.commit()
             
-            # Send alert if new
             cursor = self.db.execute(
                 "SELECT status FROM listings WHERE id = ?", 
                 (item["itemId"],)
@@ -133,5 +125,8 @@ Link: {item['itemWebUrl']}
                 print(f"Email failed: {str(e)}")
 
 if __name__ == "__main__":
+    import time
     tracker = SkylandersTracker()
-    tracker.fetch_ebay_listings()
+    while True:
+        tracker.fetch_ebay_listings()
+        time.sleep(CONFIG["CHECK_INTERVAL"])
