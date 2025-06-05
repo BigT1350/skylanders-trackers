@@ -99,7 +99,7 @@ class SkylandersTracker:
             # Fixed the cursor execution with proper parenthesis
             cursor = self.db.execute(
                 "SELECT status FROM listings WHERE id = ?", 
-                (item["itemId"],)
+                (item["itemId"],))
             result = cursor.fetchone()
             if result and result[0] == "new":
                 self.send_alert(item, skylander["name"])
